@@ -141,3 +141,15 @@ class QARemote(RemoteEntity):
                 {"entity_id": self._learn_switch},
                 blocking=True,
             )
+
+
+# ------------------------------------------------------
+# SETUP ENTRY (OBRIGATÓRIO)
+# ------------------------------------------------------
+
+async def async_setup_entry(hass, entry, async_add_entities):
+    config = {**entry.data, **entry.options}
+
+    async_add_entities([
+        QARemote(hass, config)
+    ])
