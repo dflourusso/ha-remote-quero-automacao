@@ -14,12 +14,12 @@ class QARemote(RemoteEntity):
     def __init__(self, hass, config):
         self.hass = hass
 
-        self._name = config.get("name")
-        self._profile = config.get("qa_profile")
+        self._name = config["name"]
+        self._profile = config["qa_profile"]
 
-        self._send_entity = config.get("qa_entity")          # text
-        self._learn_switch = config.get("qa_learn_switch")  # switch
-        self._code_sensor = config.get("qa_code_sensor")    # sensor
+        self._send_entity = config["qa_entity"]          # text / input_text
+        self._learn_switch = config["qa_learn_switch"]   # switch / input_boolean
+        self._code_sensor = config["qa_code_sensor"]     # sensor
 
         self._attr_name = self._name
         self._attr_unique_id = f"qa_remote_{self._profile}"
@@ -31,11 +31,10 @@ class QARemote(RemoteEntity):
     # --------------------------------------------------
 
     async def async_send_command(self, command, **kwargs):
-
         device = kwargs.get("device")
 
         if not device:
-            _LOGGER.error("send_command sem device")
+            _LOGGER.error("QA send_command sem device")
             return
 
         if isinstance(command, list):
@@ -45,20 +44,20 @@ class QARemote(RemoteEntity):
 
         if not ir:
             _LOGGER.error(
-                "QA: comando '%s' não existe para device '%s'",
+                "QA: comando '%s' não encontrado para '%s'",
                 command,
                 device,
             )
             return
 
-        _LOGGER.info("[QA] %s → %s", device, command)
-
         domain = self._send_entity.split(".")[0]
-        service = "set_value"
         service_domain = "text" if domain == "text" else "input_text"
+
+        _LOGGER.info("[QA] Enviando %s → %s", device, command)
+
         await self.hass.services.async_call(
             service_domain,
-            service,
+            "set_value",
             {
                 "entity_id": self._send_entity,
                 "value": ir,
@@ -67,11 +66,10 @@ class QARemote(RemoteEntity):
         )
 
     # --------------------------------------------------
-    # LEARN COMMAND (REAL)
+    # LEARN COMMAND
     # --------------------------------------------------
 
     async def async_learn_command(self, **kwargs):
-
         device = kwargs.get("device")
         command = kwargs.get("command")
 
@@ -79,31 +77,22 @@ class QARemote(RemoteEntity):
             command = command[0]
 
         if not device or not command:
-            _LOGGER.error("learn_command requer device e command")
+            _LOGGER.error("QA learn_command requer device e command")
             return
 
-        _LOGGER.info(
-            "[QA] Iniciando aprendizado: %s → %s",
-            device,
-            command,
-        )
+        _LOGGER.info("[QA] Aprendendo %s → %s", device, command)
 
         learned_event = asyncio.Event()
-        learned_value = {"code": None}
-
-        # ------------------------------
-        # CALLBACK SENSOR
-        # ------------------------------
+        learned_code = {"value": None}
 
         async def _sensor_changed(event):
             new = event.data.get("new_state")
             if not new or not new.state:
                 return
 
-            learned_value["code"] = new.state
+            learned_code["value"] = new.state
             learned_event.set()
 
-        # Escuta o sensor
         unsub = async_track_state_change_event(
             self.hass,
             [self._code_sensor],
@@ -111,28 +100,28 @@ class QARemote(RemoteEntity):
         )
 
         try:
-            # 1) Ligar modo learn
+            # Liga modo aprendizado
+            learn_domain = self._learn_switch.split(".")[0]
+
             await self.hass.services.async_call(
-                "switch",
+                learn_domain,
                 "turn_on",
                 {"entity_id": self._learn_switch},
                 blocking=True,
             )
 
-            # 2) Esperar código (timeout 20s)
             try:
                 await asyncio.wait_for(learned_event.wait(), timeout=20)
             except asyncio.TimeoutError:
-                _LOGGER.error("[QA] Timeout no aprendizado IR")
+                _LOGGER.error("[QA] Timeout ao aprender IR")
                 return
 
-            code = learned_value["code"]
+            code = learned_code["value"]
 
             if not code:
-                _LOGGER.error("[QA] Código aprendido vazio")
+                _LOGGER.error("[QA] Código IR vazio")
                 return
 
-            # 3) Salvar
             self.storage.set(device, command, code)
 
             _LOGGER.info(
@@ -142,11 +131,12 @@ class QARemote(RemoteEntity):
             )
 
         finally:
-            # 4) Cleanup
             unsub()
 
+            learn_domain = self._learn_switch.split(".")[0]
+
             await self.hass.services.async_call(
-                "switch",
+                learn_domain,
                 "turn_off",
                 {"entity_id": self._learn_switch},
                 blocking=True,

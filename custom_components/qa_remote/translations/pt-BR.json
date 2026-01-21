@@ -13,5 +13,9 @@
         }
       }
     }
+  },
+  "error": {
+    "invalid_text_entity": "Selecione uma entidade text ou input_text",
+    "invalid_switch_entity": "Selecione uma entidade switch ou input_boolean"
   }
 }
