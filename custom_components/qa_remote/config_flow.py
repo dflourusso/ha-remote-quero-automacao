@@ -24,12 +24,12 @@ class QAConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             vol.Required("qa_entity"):
                 selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="input_text")
+                    selector.EntitySelectorConfig(domain="text")
                 ),
 
             vol.Required("qa_learn_switch"):
                 selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="input_boolean")
+                    selector.EntitySelectorConfig(domain="switch")
                 ),
 
             vol.Required("qa_code_sensor"):
@@ -72,14 +72,14 @@ class QAOptionsFlow(config_entries.OptionsFlow):
                 "qa_entity",
                 default=options.get("qa_entity"),
             ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="input_text")
+                selector.EntitySelectorConfig(domain="text")
             ),
 
             vol.Optional(
                 "qa_learn_switch",
                 default=options.get("qa_learn_switch"),
             ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="input_boolean")
+                selector.EntitySelectorConfig(domain="switch")
             ),
 
             vol.Optional(

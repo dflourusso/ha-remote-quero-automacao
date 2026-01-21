@@ -111,7 +111,7 @@ class QARemote(RemoteEntity):
             )
 
             try:
-                await asyncio.wait_for(learned_event.wait(), timeout=20)
+                await asyncio.wait_for(learned_event.wait(), timeout=60)
             except asyncio.TimeoutError:
                 _LOGGER.error("[QA] Timeout ao aprender IR")
                 return
