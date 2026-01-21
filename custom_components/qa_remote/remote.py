@@ -10,6 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class QARemote(RemoteEntity):
+    """QA IR Remote."""
 
     def __init__(self, hass, config):
         self.hass = hass
@@ -17,14 +18,24 @@ class QARemote(RemoteEntity):
         self._name = config["name"]
         self._profile = config["qa_profile"]
 
-        self._send_entity = config["qa_entity"]          # text / input_text
-        self._learn_switch = config["qa_learn_switch"]   # switch / input_boolean
-        self._code_sensor = config["qa_code_sensor"]     # sensor
+        # Entidades expostas pelo hub QA
+        self._send_entity = config["qa_entity"]          # input_text (debug) ou text (final)
+        self._learn_switch = config["qa_learn_switch"]   # input_boolean (debug) ou switch
+        self._code_sensor = config["qa_code_sensor"]     # sensor com IR aprendido
 
         self._attr_name = self._name
         self._attr_unique_id = f"qa_remote_{self._profile}"
+        self._attr_icon = "mdi:infrared"
 
         self.storage = QAStorage(hass, self._profile)
+
+    # --------------------------------------------------
+    # LIFECYCLE
+    # --------------------------------------------------
+
+    async def async_added_to_hass(self):
+        """Carrega os códigos IR fora do event loop."""
+        await self.storage.async_load()
 
     # --------------------------------------------------
     # SEND COMMAND
@@ -37,6 +48,7 @@ class QARemote(RemoteEntity):
             _LOGGER.error("QA send_command sem device")
             return
 
+        # Aceita string ou lista, mas envia um por vez
         if isinstance(command, list):
             command = command[0]
 
@@ -51,12 +63,11 @@ class QARemote(RemoteEntity):
             return
 
         domain = self._send_entity.split(".")[0]
-        service_domain = "text" if domain == "text" else "input_text"
 
-        _LOGGER.info("[QA] Enviando %s → %s", device, command)
+        _LOGGER.info("[QA] Enviando IR: %s → %s", device, command)
 
         await self.hass.services.async_call(
-            service_domain,
+            domain,
             "set_value",
             {
                 "entity_id": self._send_entity,
@@ -73,14 +84,15 @@ class QARemote(RemoteEntity):
         device = kwargs.get("device")
         command = kwargs.get("command")
 
-        if isinstance(command, list):
-            command = command[0]
-
         if not device or not command:
             _LOGGER.error("QA learn_command requer device e command")
             return
 
-        _LOGGER.info("[QA] Aprendendo %s → %s", device, command)
+        # Aprende apenas um comando
+        if isinstance(command, list):
+            command = command[0]
+
+        _LOGGER.info("[QA] Aprendendo IR: %s → %s", device, command)
 
         learned_event = asyncio.Event()
         learned_code = {"value": None}
@@ -111,6 +123,7 @@ class QARemote(RemoteEntity):
             )
 
             try:
+                # ⏱️ Timeout aumentado para 60s
                 await asyncio.wait_for(learned_event.wait(), timeout=60)
             except asyncio.TimeoutError:
                 _LOGGER.error("[QA] Timeout ao aprender IR")
@@ -122,10 +135,10 @@ class QARemote(RemoteEntity):
                 _LOGGER.error("[QA] Código IR vazio")
                 return
 
-            self.storage.set(device, command, code)
+            await self.storage.set(device, command, code)
 
             _LOGGER.info(
-                "[QA] Aprendido com sucesso: %s → %s",
+                "[QA] IR aprendido com sucesso: %s → %s",
                 device,
                 command,
             )
@@ -133,6 +146,7 @@ class QARemote(RemoteEntity):
         finally:
             unsub()
 
+            # Desliga modo aprendizado
             learn_domain = self._learn_switch.split(".")[0]
 
             await self.hass.services.async_call(
@@ -144,7 +158,7 @@ class QARemote(RemoteEntity):
 
 
 # ------------------------------------------------------
-# SETUP ENTRY (OBRIGATÓRIO)
+# SETUP ENTRY
 # ------------------------------------------------------
 
 async def async_setup_entry(hass, entry, async_add_entities):
