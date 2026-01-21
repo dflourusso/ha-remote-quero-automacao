@@ -1,0 +1,17 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "QA IR Hub",
+        "description": "Configure the QA IR hub as a Home Assistant remote",
+        "data": {
+          "name": "Name",
+          "qa_profile": "QA profile - (File name used to save to IR codes)",
+          "qa_entity": "IR sender entity (text)",
+          "qa_learn_switch": "Learning mode switch",
+          "qa_code_sensor": "Learned IR code sensor"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "IR Remote - Quero Automação",
+  "content_in_root": false,
+  "domain": "qa_remote",
+  "country": [
+    "BR"
+  ],
+  "homeassistant": "2024.6.0",
+  "render_readme": true,
+  "zip_release": false,
+  "filename": "qa_remote.zip"
+}

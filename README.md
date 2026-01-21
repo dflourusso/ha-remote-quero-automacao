@@ -1,0 +1,92 @@
+# QA IR Remote
+
+Integração para Home Assistant que transforma um hub IR da **QA** em uma
+entidade `remote` nativa do HA.
+
+Essa integração permite:
+
+- Enviar comandos IR via `remote.send_command`
+- Aprender comandos IR via `remote.learn_command`
+- Persistir códigos IR em arquivos locais do Home Assistant
+- Controlar múltiplos dispositivos (ar-condicionado, TV, receiver, etc.)
+- Integrar facilmente com outras integrações como `climate`, `media_player` e automações
+
+---
+
+## ✨ Conceito
+
+O hub QA expõe entidades do Home Assistant:
+
+- `text` → envio de código IR em Base64
+- `switch` → habilitar modo de aprendizado
+- `sensor` → receber o código IR aprendido
+
+Esta integração conecta essas entidades e as expõe como um **remote padrão do HA**.
+
+---
+
+## 📦 O que esta integração cria
+
+- Uma entidade: `remote.qa_<nome>`
+- Um diretório de armazenamento: `/config/qa_ir/`
+- Um arquivo por perfil: `/config/qa_ir/<profile>.json`
+
+---
+
+## 🗂️ Estrutura do arquivo IR
+
+```json
+{
+  "commands": {
+    "climate_sala": {
+      "cool_auto_24": "BASE64...",
+      "off": "BASE64..."
+    },
+    "tv": {
+      "on": "BASE64...",
+      "mute": "BASE64..."
+    }
+  }
+}
+```
+- Um único arquivo pode conter vários dispositivos
+- Cada dispositivo pode ter qualquer conjunto de comandos
+
+---
+## ⚙️ Configuração
+
+Durante a configuração você precisará informar:
+
+- Nome
+- Perfil QA (nome do arquivo)
+- Entidade text usada para envio do IR
+- Entidade switch para ativar modo de aprendizado
+- Entidade sensor que recebe o código aprendido
+
+## ▶️ Enviar comando IR
+
+```yaml
+action: remote.send_command
+target:
+  entity_id: remote.qa_sala
+data:
+  device: climate_sala
+  command: cool_auto_24
+```
+
+## 🎓 Aprender comando IR
+```yaml
+action: remote.learn_command
+target:
+  entity_id: remote.qa_sala
+data:
+  device: climate_sala
+  command: cool_auto_24
+```
+Fluxo de aprendizado
+
+- O switch de aprendizado é ativado
+- O usuário aponta o controle físico para o hub
+- O sensor recebe o código IR em Base64
+- O código é salvo automaticamente no arquivo
+- O modo de aprendizado é desligado

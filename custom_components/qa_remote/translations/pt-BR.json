@@ -1,0 +1,17 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hub IR QA",
+        "description": "Configure o hub IR da QA como um controle remoto do Home Assistant",
+        "data": {
+          "name": "Nome",
+          "qa_profile": "Perfil QA - (Nome do arquivo a salvar os códigos)",
+          "qa_entity": "Entidade de envio IR (text)",
+          "qa_learn_switch": "Switch de modo aprendizado",
+          "qa_code_sensor": "Sensor do código IR aprendido"
+        }
+      }
+    }
+  }
+}
