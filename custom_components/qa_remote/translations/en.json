@@ -6,7 +6,21 @@
         "description": "Configure the QA IR hub as a Home Assistant remote",
         "data": {
           "name": "Name",
-          "qa_profile": "QA profile - (File name used to save to IR codes)",
+          "qa_profile": "QA profile (file name used to store IR codes)",
+          "qa_entity": "IR sender entity (text)",
+          "qa_learn_switch": "Learning mode switch",
+          "qa_code_sensor": "Learned IR code sensor"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edit QA IR Hub",
+        "description": "Edit this QA IR hub configuration",
+        "data": {
+          "qa_profile": "QA profile (file name used to store IR codes)",
           "qa_entity": "IR sender entity (text)",
           "qa_learn_switch": "Learning mode switch",
           "qa_code_sensor": "Learned IR code sensor"
@@ -15,7 +29,7 @@
     }
   },
   "error": {
-    "invalid_text_entity": "Select a text or input_text entity",
-    "invalid_switch_entity": "Select a switch or input_boolean entity"
+    "invalid_text_entity": "Select a text entity",
+    "invalid_switch_entity": "Select a switch entity"
   }
 }
