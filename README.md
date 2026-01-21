@@ -90,3 +90,33 @@ Fluxo de aprendizado
 - O sensor recebe o código IR em Base64
 - O código é salvo automaticamente no arquivo
 - O modo de aprendizado é desligado
+
+---
+## Instalação (HACS)
+
+Esta integração pode ser instalada utilizando o HACS (Home Assistant Community Store).
+
+### Pré-requisitos
+- Home Assistant instalado e funcionando
+- HACS instalado e configurado
+
+### Passo a passo
+
+- Abra o HACS no Home Assistant
+- Vá em Integrações
+- Clique no menu ⋮ (três pontos) no canto superior direito
+- Selecione Repositórios personalizados
+- Adicione o repositório:
+- Repositório: `https://github.com/dflourusso/ha-remote-quero-automacao`
+- Categoria: Integração
+- Clique em Adicionar
+- Procure por QA Remote no HACS
+- Clique em Download
+- Reinicie o Home Assistant
+
+#### Após a instalação
+
+- Vá em Configurações → Dispositivos e Serviços
+- Clique em Adicionar Integração
+- Procure por QA Remote
+- Siga o fluxo de configuração
