@@ -53,9 +53,12 @@ class QARemote(RemoteEntity):
 
         _LOGGER.info("[QA] %s → %s", device, command)
 
+        domain = self._send_entity.split(".")[0]
+        service = "set_value"
+        service_domain = "text" if domain == "text" else "input_text"
         await self.hass.services.async_call(
-            "text",
-            "set_value",
+            service_domain,
+            service,
             {
                 "entity_id": self._send_entity,
                 "value": ir,
