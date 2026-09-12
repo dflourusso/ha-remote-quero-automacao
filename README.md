@@ -18,7 +18,7 @@ Essa integração permite:
 O hub QA expõe entidades do Home Assistant:
 
 - `text` → envio de código IR em Base64
-- `switch` → habilitar modo de aprendizado
+- `button` → ativar modo de aprendizado (ex.: `button.ir_qa_switch_learn_ir_code`)
 - `sensor` → receber o código IR aprendido
 
 Esta integração conecta essas entidades e as expõe como um **remote padrão do HA**.
@@ -60,7 +60,7 @@ Durante a configuração você precisará informar:
 - Nome
 - Perfil QA (nome do arquivo)
 - Entidade text usada para envio do IR
-- Entidade switch para ativar modo de aprendizado
+- Entidade button para ativar modo de aprendizado
 - Entidade sensor que recebe o código aprendido
 
 ## ▶️ Enviar comando IR
@@ -85,11 +85,10 @@ data:
 ```
 Fluxo de aprendizado
 
-- O switch de aprendizado é ativado
+- O botão de aprendizado é pressionado
 - O usuário aponta o controle físico para o hub
 - O sensor recebe o código IR em Base64
 - O código é salvo automaticamente no arquivo
-- O modo de aprendizado é desligado
 
 ---
 ## Instalação (HACS)

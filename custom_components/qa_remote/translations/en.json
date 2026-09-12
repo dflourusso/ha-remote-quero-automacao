@@ -8,7 +8,7 @@
           "name": "Name",
           "qa_profile": "QA profile (file name used to store IR codes)",
           "qa_entity": "IR sender entity (text)",
-          "qa_learn_switch": "Learning mode switch",
+          "qa_learn_button": "Learning mode button",
           "qa_code_sensor": "Learned IR code sensor"
         }
       }
@@ -22,7 +22,7 @@
         "data": {
           "qa_profile": "QA profile (file name used to store IR codes)",
           "qa_entity": "IR sender entity (text)",
-          "qa_learn_switch": "Learning mode switch",
+          "qa_learn_button": "Learning mode button",
           "qa_code_sensor": "Learned IR code sensor"
         }
       }
@@ -30,6 +30,6 @@
   },
   "error": {
     "invalid_text_entity": "Select a text entity",
-    "invalid_switch_entity": "Select a switch entity"
+    "invalid_button_entity": "Select a button entity"
   }
 }

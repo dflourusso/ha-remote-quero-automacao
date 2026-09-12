@@ -8,7 +8,7 @@ from .const import DOMAIN
 
 
 class QAConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(self, user_input=None):
         if user_input is not None:
@@ -27,9 +27,9 @@ class QAConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     selector.EntitySelectorConfig(domain="text")
                 ),
 
-            vol.Required("qa_learn_switch"):
+            vol.Required("qa_learn_button"):
                 selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="switch")
+                    selector.EntitySelectorConfig(domain="button")
                 ),
 
             vol.Required("qa_code_sensor"):
@@ -76,10 +76,10 @@ class QAOptionsFlow(config_entries.OptionsFlow):
             ),
 
             vol.Optional(
-                "qa_learn_switch",
-                default=options.get("qa_learn_switch"),
+                "qa_learn_button",
+                default=options.get("qa_learn_button"),
             ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="switch")
+                selector.EntitySelectorConfig(domain="button")
             ),
 
             vol.Optional(

@@ -8,7 +8,7 @@
           "name": "Nome",
           "qa_profile": "Perfil QA (nome do arquivo onde os códigos IR serão salvos)",
           "qa_entity": "Entidade de envio IR (text)",
-          "qa_learn_switch": "Switch de modo aprendizado",
+          "qa_learn_button": "Botão de modo de aprendizado",
           "qa_code_sensor": "Sensor do código IR aprendido"
         }
       }
@@ -22,7 +22,7 @@
         "data": {
           "qa_profile": "Perfil QA (nome do arquivo onde os códigos IR são salvos)",
           "qa_entity": "Entidade de envio IR (text)",
-          "qa_learn_switch": "Switch de modo aprendizado",
+          "qa_learn_button": "Botão de modo de aprendizado",
           "qa_code_sensor": "Sensor do código IR aprendido"
         }
       }
@@ -30,6 +30,6 @@
   },
   "error": {
     "invalid_text_entity": "Selecione uma entidade do tipo text",
-    "invalid_switch_entity": "Selecione uma entidade do tipo switch"
+    "invalid_button_entity": "Selecione uma entidade do tipo button"
   }
 }

@@ -20,7 +20,7 @@ class QARemote(RemoteEntity):
 
         # Entidades expostas pelo hub QA
         self._send_entity = config["qa_entity"]          # input_text (debug) ou text (final)
-        self._learn_switch = config["qa_learn_switch"]   # input_boolean (debug) ou switch
+        self._learn_button = config["qa_learn_button"]   # button de aprendizado IR
         self._code_sensor = config["qa_code_sensor"]     # sensor com IR aprendido
 
         self._attr_name = self._name
@@ -112,13 +112,11 @@ class QARemote(RemoteEntity):
         )
 
         try:
-            # Liga modo aprendizado
-            learn_domain = self._learn_switch.split(".")[0]
-
+            # Pressiona botão de aprendizado
             await self.hass.services.async_call(
-                learn_domain,
-                "turn_on",
-                {"entity_id": self._learn_switch},
+                "button",
+                "press",
+                {"entity_id": self._learn_button},
                 blocking=True,
             )
 
@@ -145,16 +143,6 @@ class QARemote(RemoteEntity):
 
         finally:
             unsub()
-
-            # Desliga modo aprendizado
-            learn_domain = self._learn_switch.split(".")[0]
-
-            await self.hass.services.async_call(
-                learn_domain,
-                "turn_off",
-                {"entity_id": self._learn_switch},
-                blocking=True,
-            )
 
 
 # ------------------------------------------------------
