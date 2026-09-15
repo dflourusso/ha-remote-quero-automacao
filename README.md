@@ -17,11 +17,15 @@ Essa integração permite:
 
 O hub QA expõe entidades do Home Assistant:
 
-- `text` → envio de código IR em Base64
+- `text` → usada na configuração para localizar o dispositivo Zigbee2MQTT
 - `button` → ativar modo de aprendizado (ex.: `button.ir_qa_switch_learn_ir_code`)
-- `sensor` → receber o código IR aprendido
+- `sensor` → fallback do código IR aprendido (limitado a 255 caracteres no HA)
 
 Esta integração conecta essas entidades e as expõe como um **remote padrão do HA**.
+
+O envio **não** usa `text.set_value` quando o tópico MQTT é conhecido. A entidade `text` do Home Assistant ignora o mesmo valor repetido (ex.: vários `volume_up`) e corta códigos longos em 255 caracteres.
+
+Os comandos são publicados via MQTT no `command_topic` do discovery da entidade text (ex.: `zigbee2mqtt2/ir_qa/set`), com `{"ir_code_to_send": "..."}`, em fila, com um intervalo entre cada envio. Assim o hub vai para a instância correta do Zigbee2MQTT (`zigbee2mqtt1`, `zigbee2mqtt2`, …) sem configurar o tópico na mão.
 
 ---
 
@@ -59,9 +63,11 @@ Durante a configuração você precisará informar:
 
 - Nome
 - Perfil QA (nome do arquivo)
-- Entidade text usada para envio do IR
+- Entidade text usada para localizar o hub (o tópico MQTT, inclusive o prefixo da instância Z2M, vem do discovery)
 - Entidade button para ativar modo de aprendizado
-- Entidade sensor que recebe o código aprendido
+- Entidade sensor que recebe o código aprendido (fallback)
+
+Nas opções da integração você pode informar o intervalo entre envios IR (padrão 0,5 s), para o hub Zigbee terminar cada comando antes do próximo.
 
 ## ▶️ Enviar comando IR
 
@@ -87,7 +93,7 @@ Fluxo de aprendizado
 
 - O botão de aprendizado é pressionado
 - O usuário aponta o controle físico para o hub
-- O sensor recebe o código IR em Base64
+- O código IR em Base64 é lido do MQTT do dispositivo (completo) ou do sensor
 - O código é salvo automaticamente no arquivo
 
 ---

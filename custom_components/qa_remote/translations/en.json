@@ -23,7 +23,8 @@
           "qa_profile": "QA profile (file name used to store IR codes)",
           "qa_entity": "IR sender entity (text)",
           "qa_learn_button": "Learning mode button",
-          "qa_code_sensor": "Learned IR code sensor"
+          "qa_code_sensor": "Learned IR code sensor",
+          "qa_send_delay": "Delay between IR sends"
         }
       }
     }

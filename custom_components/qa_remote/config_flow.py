@@ -4,7 +4,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 
-from .const import DOMAIN
+from .const import CONF_MQTT_TOPIC, CONF_SEND_DELAY, DEFAULT_SEND_DELAY, DOMAIN
 
 
 class QAConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -60,6 +60,13 @@ class QAOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         if user_input is not None:
+            saved_topic = (
+                self.entry.options.get(CONF_MQTT_TOPIC)
+                or self.entry.data.get(CONF_MQTT_TOPIC)
+                or ""
+            ).strip()
+            if saved_topic:
+                user_input[CONF_MQTT_TOPIC] = saved_topic
             return self.async_create_entry(
                 title="",
                 data=user_input,
@@ -87,6 +94,18 @@ class QAOptionsFlow(config_entries.OptionsFlow):
                 default=options.get("qa_code_sensor"),
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
+            ),
+
+            vol.Optional(
+                CONF_SEND_DELAY,
+                default=options.get(CONF_SEND_DELAY, DEFAULT_SEND_DELAY),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0.2,
+                    max=5,
+                    step=0.1,
+                    unit_of_measurement="s",
+                )
             ),
         })
 
