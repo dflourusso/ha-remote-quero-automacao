@@ -14,25 +14,58 @@ _LOGGER = logging.getLogger(__name__)
 _INVALID_STATES = {"", "unknown", "unavailable", "none", "null"}
 
 
-def _extract_command_topic(payload):
+def _parse_discovery_payload(payload):
     if isinstance(payload, str):
         try:
             payload = json.loads(payload)
         except (TypeError, ValueError, json.JSONDecodeError):
             return None
-    if not isinstance(payload, dict):
+    if isinstance(payload, dict):
+        return payload
+    return None
+
+
+def _extract_command_topic(payload):
+    data = _parse_discovery_payload(payload)
+    if not data:
         return None
-    topic = payload.get("command_topic")
+    topic = data.get("command_topic")
     if isinstance(topic, str) and topic.strip():
         return topic.strip()
     return None
 
 
-def _topics_from_set_topic(set_topic):
-    topic = set_topic.rstrip("/")
+def _extract_state_topic(payload):
+    data = _parse_discovery_payload(payload)
+    if not data:
+        return None
+    topic = data.get("state_topic")
+    if isinstance(topic, str) and topic.strip():
+        return topic.strip()
+    return None
+
+
+def _topics_from_set_topic(command_topic, state_topic=None):
+    """Normalize Z2M discovery topics to device /set and state topics.
+
+    Discovery for text entities uses:
+      zigbee2mqtt/<device>/set/ir_code_to_send
+    Publishing JSON there (or appending another /set) breaks Z2M. Always use:
+      zigbee2mqtt/<device>/set  +  {"ir_code_to_send": "..."}
+    """
+    topic = command_topic.rstrip("/")
+    discovered_state = (state_topic or "").strip().rstrip("/") or None
+
+    # .../set/<property>  →  .../set
+    marker = "/set/"
+    if marker in topic:
+        set_topic = topic.split(marker, 1)[0] + "/set"
+        return set_topic, discovered_state or set_topic[: -len("/set")]
+
     if topic.endswith("/set"):
-        return topic, topic[: -len("/set")]
-    return f"{topic}/set", topic
+        return topic, discovered_state or topic[: -len("/set")]
+
+    return f"{topic}/set", discovered_state or topic
 
 
 def _valid_ir_code(value):
@@ -79,23 +112,27 @@ class QARemote(RemoteEntity):
             _LOGGER.debug("[QA] MQTT topic from saved override: %s", set_topic)
             return set_topic, state_topic
 
-        command_topic = self._discovery_command_topic()
+        command_topic, discovered_state = self._discovery_topics()
         if not command_topic:
             return None, None
 
-        set_topic, state_topic = _topics_from_set_topic(command_topic)
-        _LOGGER.debug("[QA] MQTT topic from discovery: %s", set_topic)
+        set_topic, state_topic = _topics_from_set_topic(command_topic, discovered_state)
+        _LOGGER.debug(
+            "[QA] MQTT topic from discovery: %s (raw command_topic=%s)",
+            set_topic,
+            command_topic,
+        )
         return set_topic, state_topic
 
-    def _discovery_command_topic(self):
-        """command_topic from the text entity's MQTT discovery (includes z2m instance prefix)."""
+    def _discovery_topics(self):
+        """Return (command_topic, state_topic) from the text entity MQTT discovery."""
         if not self._mqtt_ready():
-            return None
+            return None, None
 
         try:
             from homeassistant.components.mqtt import debug_info
         except ImportError:
-            return None
+            return None, None
 
         ent = er.async_get(self.hass).async_get(self._send_entity)
         device_id = ent.device_id if ent else None
@@ -105,29 +142,26 @@ class QARemote(RemoteEntity):
                 info = debug_info.info_for_device(self.hass, device_id)
             except Exception as err:
                 _LOGGER.debug("[QA] MQTT discovery lookup failed: %s", err)
-                _LOGGER.debug("[QA] MQTT discovery lookup failed: %s", err)
                 info = None
 
             if info:
                 for entity_info in info.get("entities") or []:
                     if entity_info.get("entity_id") != self._send_entity:
                         continue
-                    topic = _extract_command_topic(
-                        (entity_info.get("discovery_data") or {}).get("payload")
-                    )
-                    if topic:
-                        return topic
+                    payload = (entity_info.get("discovery_data") or {}).get("payload")
+                    command_topic = _extract_command_topic(payload)
+                    if command_topic:
+                        return command_topic, _extract_state_topic(payload)
 
                 for entity_info in info.get("entities") or []:
-                    topic = _extract_command_topic(
-                        (entity_info.get("discovery_data") or {}).get("payload")
-                    )
-                    if topic and topic.rstrip("/").endswith("/set"):
-                        return topic
+                    payload = (entity_info.get("discovery_data") or {}).get("payload")
+                    command_topic = _extract_command_topic(payload)
+                    if command_topic and "/set" in command_topic.rstrip("/"):
+                        return command_topic, _extract_state_topic(payload)
 
-        return self._command_topic_from_entity_debug()
+        return self._topics_from_entity_debug()
 
-    def _command_topic_from_entity_debug(self):
+    def _topics_from_entity_debug(self):
         mqtt_data = self.hass.data.get("mqtt")
         try:
             from homeassistant.components.mqtt.models import DATA_MQTT
@@ -137,17 +171,17 @@ class QARemote(RemoteEntity):
             pass
 
         if mqtt_data is None:
-            return None
+            return None, None
 
         entities = getattr(mqtt_data, "debug_info_entities", None)
         if entities is None and isinstance(mqtt_data, dict):
             entities = mqtt_data.get("debug_info_entities")
         if not entities:
-            return None
+            return None, None
 
         entity_info = entities.get(self._send_entity)
         if not entity_info:
-            return None
+            return None, None
 
         discovery = entity_info.get("discovery_data") or {}
         payload = discovery.get("payload")
@@ -159,7 +193,9 @@ class QARemote(RemoteEntity):
             except ImportError:
                 payload = None
 
-        return _extract_command_topic(payload) or _extract_command_topic(discovery)
+        command_topic = _extract_command_topic(payload) or _extract_command_topic(discovery)
+        state_topic = _extract_state_topic(payload) or _extract_state_topic(discovery)
+        return command_topic, state_topic
 
     def _mqtt_ready(self):
         return "mqtt" in self.hass.config.components and self.hass.services.has_service(
