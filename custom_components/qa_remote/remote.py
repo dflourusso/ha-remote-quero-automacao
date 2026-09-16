@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 
-from homeassistant.components.remote import RemoteEntity
+from homeassistant.components.remote import RemoteEntity, RemoteEntityFeature
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 
@@ -77,6 +77,8 @@ def _valid_ir_code(value):
 class QARemote(RemoteEntity):
     """QA IR Remote."""
 
+    _attr_supported_features = RemoteEntityFeature.LEARN_COMMAND
+
     def __init__(self, hass, config):
         self.hass = hass
 
@@ -103,6 +105,14 @@ class QARemote(RemoteEntity):
     async def async_added_to_hass(self):
         """Carrega os códigos IR fora do event loop."""
         await self.storage.async_load()
+        _LOGGER.info(
+            "[QA] Profile '%s' loaded from %s (%s device(s), %s command(s), delay=%.1fs)",
+            self._profile,
+            self.storage.path(),
+            len(self.storage.devices()),
+            self.storage.command_count(),
+            self._send_delay,
+        )
 
     def _mqtt_topics(self):
         """Return (set_topic, state_topic) or (None, None)."""
@@ -113,16 +123,26 @@ class QARemote(RemoteEntity):
             return set_topic, state_topic
 
         command_topic, discovered_state = self._discovery_topics()
-        if not command_topic:
-            return None, None
+        if command_topic:
+            set_topic, state_topic = _topics_from_set_topic(
+                command_topic, discovered_state
+            )
+            _LOGGER.debug(
+                "[QA] MQTT topic from discovery: %s (raw command_topic=%s)",
+                set_topic,
+                command_topic,
+            )
+            return set_topic, state_topic
 
-        set_topic, state_topic = _topics_from_set_topic(command_topic, discovered_state)
-        _LOGGER.debug(
-            "[QA] MQTT topic from discovery: %s (raw command_topic=%s)",
-            set_topic,
-            command_topic,
-        )
-        return set_topic, state_topic
+        # Fallback: state_topic alone → derive /set (multi-instance safe prefix).
+        if discovered_state:
+            set_topic, state_topic = _topics_from_set_topic(discovered_state)
+            _LOGGER.debug(
+                "[QA] MQTT topic derived from state_topic: %s", set_topic
+            )
+            return set_topic, state_topic
+
+        return None, None
 
     def _discovery_topics(self):
         """Return (command_topic, state_topic) from the text entity MQTT discovery."""
@@ -150,14 +170,18 @@ class QARemote(RemoteEntity):
                         continue
                     payload = (entity_info.get("discovery_data") or {}).get("payload")
                     command_topic = _extract_command_topic(payload)
-                    if command_topic:
-                        return command_topic, _extract_state_topic(payload)
+                    state_topic = _extract_state_topic(payload)
+                    if command_topic or state_topic:
+                        return command_topic, state_topic
 
                 for entity_info in info.get("entities") or []:
                     payload = (entity_info.get("discovery_data") or {}).get("payload")
                     command_topic = _extract_command_topic(payload)
+                    state_topic = _extract_state_topic(payload)
                     if command_topic and "/set" in command_topic.rstrip("/"):
-                        return command_topic, _extract_state_topic(payload)
+                        return command_topic, state_topic
+                    if state_topic:
+                        return command_topic, state_topic
 
         return self._topics_from_entity_debug()
 
@@ -193,7 +217,9 @@ class QARemote(RemoteEntity):
             except ImportError:
                 payload = None
 
-        command_topic = _extract_command_topic(payload) or _extract_command_topic(discovery)
+        command_topic = _extract_command_topic(payload) or _extract_command_topic(
+            discovery
+        )
         state_topic = _extract_state_topic(payload) or _extract_state_topic(discovery)
         return command_topic, state_topic
 
@@ -206,7 +232,7 @@ class QARemote(RemoteEntity):
         set_topic, _ = self._mqtt_topics()
 
         if self._mqtt_ready() and set_topic:
-            _LOGGER.debug("[QA] MQTT publish %s", set_topic)
+            _LOGGER.info("[QA] MQTT publish %s", set_topic)
             await self.hass.services.async_call(
                 "mqtt",
                 "publish",
@@ -246,6 +272,33 @@ class QARemote(RemoteEntity):
         except (TypeError, ValueError):
             return delay
 
+    async def _resolve_ir(self, device, cmd):
+        ir = self.storage.get(device, cmd)
+        if ir and _valid_ir_code(ir):
+            return ir
+
+        await self.storage.async_load()
+        ir = self.storage.get(device, cmd)
+        if ir and _valid_ir_code(ir):
+            _LOGGER.info(
+                "[QA] Comando '%s'/'%s' encontrado após reload de %s",
+                device,
+                cmd,
+                self.storage.path(),
+            )
+            return ir
+
+        _LOGGER.error(
+            "QA: comando '%s' não encontrado para '%s' "
+            "(profile=%s path=%s devices=%s)",
+            cmd,
+            device,
+            self._profile,
+            self.storage.path(),
+            self.storage.devices(),
+        )
+        return None
+
     async def async_send_command(self, command, **kwargs):
         device = kwargs.get("device")
 
@@ -272,14 +325,8 @@ class QARemote(RemoteEntity):
         async with self._send_lock:
             for _ in range(repeats):
                 for cmd in commands:
-                    ir = self.storage.get(device, cmd)
-
-                    if not ir or not _valid_ir_code(ir):
-                        _LOGGER.error(
-                            "QA: comando '%s' não encontrado para '%s'",
-                            cmd,
-                            device,
-                        )
+                    ir = await self._resolve_ir(device, cmd)
+                    if not ir:
                         continue
 
                     _LOGGER.info("[QA] Enviando IR: %s → %s", device, cmd)
@@ -291,12 +338,15 @@ class QARemote(RemoteEntity):
         device = kwargs.get("device")
         command = kwargs.get("command")
 
-        if not device or not command:
-            _LOGGER.error("QA learn_command requer device e command")
-            return
-
         if isinstance(command, list):
-            command = command[0]
+            command = command[0] if command else None
+
+        if not device or not command:
+            _LOGGER.error(
+                "QA learn_command requer device e command (recebido: %s)",
+                {k: kwargs.get(k) for k in ("device", "command", "timeout")},
+            )
+            return
 
         _LOGGER.info("[QA] Aprendendo IR: %s → %s", device, command)
 
@@ -307,7 +357,9 @@ class QARemote(RemoteEntity):
         armed = False
 
         def _timings_ts(payload):
-            timings = payload.get("learned_ir_timings") if isinstance(payload, dict) else None
+            timings = (
+                payload.get("learned_ir_timings") if isinstance(payload, dict) else None
+            )
             if isinstance(timings, dict):
                 return timings.get("timestamp")
             return None
@@ -366,7 +418,9 @@ class QARemote(RemoteEntity):
             if self._mqtt_ready() and state_topic:
                 from homeassistant.components.mqtt import async_subscribe
 
-                unsub_mqtt = await async_subscribe(self.hass, state_topic, _mqtt_message)
+                unsub_mqtt = await async_subscribe(
+                    self.hass, state_topic, _mqtt_message
+                )
                 # Drain the retained Z2M state so we don't treat it as a new code.
                 await asyncio.sleep(0.3)
 

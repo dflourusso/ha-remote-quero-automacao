@@ -16,27 +16,19 @@ class QAStorage:
         # ⚠️ NÃO faz I/O aqui
         self._ensure_folder()
 
-    # --------------------------------------------------
-    # PATHS
-    # --------------------------------------------------
-
-    def _path(self):
+    def path(self):
+        """Absolute path to the profile JSON file."""
         return self.hass.config.path(
             STORAGE_FOLDER,
             f"{self.profile}.json"
         )
 
-    # --------------------------------------------------
-    # FOLDER
-    # --------------------------------------------------
+    def _path(self):
+        return self.path()
 
     def _ensure_folder(self):
         path = self.hass.config.path(STORAGE_FOLDER)
         os.makedirs(path, exist_ok=True)
-
-    # --------------------------------------------------
-    # LOAD (ASYNC SAFE)
-    # --------------------------------------------------
 
     async def async_load(self):
         """Carrega o arquivo fora do event loop."""
@@ -56,10 +48,6 @@ class QAStorage:
             _LOGGER.error("Erro lendo QA file %s: %s", path, e)
             self.data = {"commands": {}}
 
-    # --------------------------------------------------
-    # SAVE (ASYNC SAFE)
-    # --------------------------------------------------
-
     async def async_save(self):
         """Salva o arquivo fora do event loop."""
         await self.hass.async_add_executor_job(self._save)
@@ -72,10 +60,6 @@ class QAStorage:
                 json.dump(self.data, f, indent=2)
         except Exception as e:
             _LOGGER.error("Erro salvando QA file %s: %s", path, e)
-
-    # --------------------------------------------------
-    # PUBLIC API
-    # --------------------------------------------------
 
     def get(self, device, command):
         return (
@@ -97,3 +81,10 @@ class QAStorage:
 
     def devices(self):
         return list(self.data.get("commands", {}).keys())
+
+    def command_count(self):
+        total = 0
+        for cmds in self.data.get("commands", {}).values():
+            if isinstance(cmds, dict):
+                total += len(cmds)
+        return total

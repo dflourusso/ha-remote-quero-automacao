@@ -3,13 +3,14 @@
     "step": {
       "user": {
         "title": "Hub IR QA",
-        "description": "Configure o hub IR da QA como um controle remoto do Home Assistant",
+        "description": "Configure o hub IR da QA como um controle remoto do Home Assistant. O intervalo entre envios deve ser pelo menos o tempo de transferência Zigbee do hub (~2s típico).",
         "data": {
           "name": "Nome",
           "qa_profile": "Perfil QA (nome do arquivo onde os códigos IR serão salvos)",
           "qa_entity": "Entidade de envio IR (text)",
           "qa_learn_button": "Botão de modo de aprendizado",
-          "qa_code_sensor": "Sensor do código IR aprendido"
+          "qa_code_sensor": "Sensor do código IR aprendido",
+          "qa_send_delay": "Intervalo entre envios IR"
         }
       }
     }
@@ -18,7 +19,7 @@
     "step": {
       "init": {
         "title": "Editar Hub IR QA",
-        "description": "Altere as configurações deste hub IR da QA",
+        "description": "Altere as configurações deste hub IR sem recriar a integração",
         "data": {
           "qa_profile": "Perfil QA (nome do arquivo onde os códigos IR são salvos)",
           "qa_entity": "Entidade de envio IR (text)",

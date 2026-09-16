@@ -66,8 +66,9 @@ Durante a configuração você precisará informar:
 - Entidade text usada para localizar o hub (o tópico MQTT, inclusive o prefixo da instância Z2M, vem do discovery)
 - Entidade button para ativar modo de aprendizado
 - Entidade sensor que recebe o código aprendido (fallback)
+- Intervalo entre envios IR (padrão **2,0 s**), para o hub Zigbee terminar cada comando antes do próximo
 
-Nas opções da integração você pode informar o intervalo entre envios IR (padrão 0,5 s), para o hub Zigbee terminar cada comando antes do próximo.
+Esse intervalo também pode ser alterado depois em **opções da integração**, sem recriar.
 
 ## ▶️ Enviar comando IR
 

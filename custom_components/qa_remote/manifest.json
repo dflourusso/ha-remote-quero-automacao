@@ -1,7 +1,7 @@
 {
   "domain": "qa_remote",
   "name": "IR Remote - Quero Automação",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "config_flow": true,
   "integration_type": "hub",
   "documentation": "https://github.com/dflourusso/ha-remote-quero-automacao",

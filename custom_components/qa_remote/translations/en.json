@@ -3,13 +3,14 @@
     "step": {
       "user": {
         "title": "QA IR Hub",
-        "description": "Configure the QA IR hub as a Home Assistant remote",
+        "description": "Configure the QA IR hub as a Home Assistant remote. Delay between IR sends should be at least the hub's Zigbee transfer time (~2s typical).",
         "data": {
           "name": "Name",
           "qa_profile": "QA profile (file name used to store IR codes)",
           "qa_entity": "IR sender entity (text)",
           "qa_learn_button": "Learning mode button",
-          "qa_code_sensor": "Learned IR code sensor"
+          "qa_code_sensor": "Learned IR code sensor",
+          "qa_send_delay": "Delay between IR sends"
         }
       }
     }
@@ -18,7 +19,7 @@
     "step": {
       "init": {
         "title": "Edit QA IR Hub",
-        "description": "Edit this QA IR hub configuration",
+        "description": "Edit this QA IR hub configuration without recreating it",
         "data": {
           "qa_profile": "QA profile (file name used to store IR codes)",
           "qa_entity": "IR sender entity (text)",

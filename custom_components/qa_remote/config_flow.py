@@ -7,6 +7,18 @@ from homeassistant.helpers import selector
 from .const import CONF_MQTT_TOPIC, CONF_SEND_DELAY, DEFAULT_SEND_DELAY, DOMAIN
 
 
+def _send_delay_selector():
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0.5,
+            max=10,
+            step=0.1,
+            unit_of_measurement="s",
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
+
+
 class QAConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 2
 
@@ -36,6 +48,11 @@ class QAConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
+
+            vol.Optional(
+                CONF_SEND_DELAY,
+                default=DEFAULT_SEND_DELAY,
+            ): _send_delay_selector(),
         })
 
         return self.async_show_form(
@@ -48,10 +65,6 @@ class QAConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(entry):
         return QAOptionsFlow(entry)
 
-
-# ------------------------------------------------------
-# OPTIONS FLOW (edição)
-# ------------------------------------------------------
 
 class QAOptionsFlow(config_entries.OptionsFlow):
 
@@ -99,14 +112,7 @@ class QAOptionsFlow(config_entries.OptionsFlow):
             vol.Optional(
                 CONF_SEND_DELAY,
                 default=options.get(CONF_SEND_DELAY, DEFAULT_SEND_DELAY),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0.2,
-                    max=5,
-                    step=0.1,
-                    unit_of_measurement="s",
-                )
-            ),
+            ): _send_delay_selector(),
         })
 
         return self.async_show_form(
